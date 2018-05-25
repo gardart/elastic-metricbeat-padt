@@ -61,15 +61,15 @@ Try {
 	##* VARIABLE DECLARATION
 	##*===============================================
 	## Variables: Application
-	[string]$appVendor = ''
-	[string]$appName = ''
-	[string]$appVersion = ''
+	[string]$appVendor = 'Elastic'
+	[string]$appName = 'Metricbeat'
+	[string]$appVersion = '6.2.4'
 	[string]$appArch = ''
 	[string]$appLang = 'EN'
 	[string]$appRevision = '01'
 	[string]$appScriptVersion = '1.0.0'
-	[string]$appScriptDate = '02/12/2017'
-	[string]$appScriptAuthor = '<author name>'
+	[string]$appScriptDate = '25/05/2018'
+	[string]$appScriptAuthor = 'Gardar Thorsteinsson<gardart@gmail.com>'
 	##*===============================================
 	## Variables: Install Titles (Only set here to override defaults set by the toolkit)
 	[string]$installName = ''
@@ -117,13 +117,25 @@ Try {
 		[string]$installPhase = 'Pre-Installation'
 
 		## Show Welcome Message, close Internet Explorer if required, allow up to 3 deferrals, verify there is enough disk space to complete the install, and persist the prompt
-		Show-InstallationWelcome -CloseApps 'iexplore' -AllowDefer -DeferTimes 3 -CheckDiskSpace -PersistPrompt
+		#Show-InstallationWelcome -CloseApps $appName -AllowDefer -DeferTimes 3 -CheckDiskSpace -PersistPrompt
+		Show-InstallationWelcome -CloseApps $appName -CheckDiskSpace -Silent
 		
 		## Show Progress Message (with the default message)
 		Show-InstallationProgress
 		
 		## <Perform Pre-Installation tasks here>
+		#Test-ServiceExists -Name 'NSClientpp' -PassThru | Where-Object {$_ } | ForEach-Object {$_.Delete() }
+
+		If ($Is64Bit) {
+			#Stop-ServiceAndDependencies -Name $appName
+			Copy-File -Path "$dirFiles\$appName-$appVersion-windows-x86_64\*" -Destination "$envProgramFiles\$appName" -Recurse
+		}
+		Else {
 		
+		}
+					 
+		 # Copy custom yml settings file from Support Files
+		 Copy-File -Path "$dirSupportFiles\metricbeat.yml" -Destination "$envProgramFiles\$appName\metricbeat.yml" -Recurse
 		
 		##*===============================================
 		##* INSTALLATION 
@@ -137,7 +149,8 @@ Try {
 		}
 		
 		## <Perform Installation tasks here>
-		
+		# Install Beats service
+		. $envProgramFiles\$appName\install-service-$appName.ps1
 		
 		##*===============================================
 		##* POST-INSTALLATION
@@ -146,8 +159,10 @@ Try {
 		
 		## <Perform Post-Installation tasks here>
 		
+        Start-ServiceAndDependencies -Name $appName
+
 		## Display a message at the end of the install
-		If (-not $useDefaultMsi) { Show-InstallationPrompt -Message 'You can customize text to appear at the end of an install or remove it completely for unattended installations.' -ButtonRightText 'OK' -Icon Information -NoWait }
+		If (-not $useDefaultMsi) {  }
 	}
 	ElseIf ($deploymentType -ieq 'Uninstall')
 	{
@@ -157,7 +172,7 @@ Try {
 		[string]$installPhase = 'Pre-Uninstallation'
 		
 		## Show Welcome Message, close Internet Explorer with a 60 second countdown before automatically closing
-		Show-InstallationWelcome -CloseApps 'iexplore' -CloseAppsCountdown 60
+		Show-InstallationWelcome -CloseApps $appName -CloseAppsCountdown 60
 		
 		## Show Progress Message (with the default message)
 		Show-InstallationProgress
